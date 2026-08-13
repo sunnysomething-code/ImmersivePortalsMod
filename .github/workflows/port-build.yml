@@ -42,6 +42,27 @@ jobs:
             git push origin HEAD:26.1.2-port
           fi
 
+      - name: Inspect remaining 26.1.2 APIs
+        run: |
+          ./gradlew printClasspath > /tmp/classpath.txt
+          python3 - <<'PY'
+          import os, re, subprocess
+          text = open('/tmp/classpath.txt', errors='ignore').read()
+          jars = re.findall(r'"([^"\n]+\.jar)"', text)
+          needles = re.compile(r'(ChunkProgress|GuiGraphics|InteractionResult|Weighted|Carv|BlockRenderLayer|CreativeModeTab|ItemGroup|BlockSettings|ClientCommand|ChunkTask|PriorityQueue|ProcessorMailbox|Mailbox|DimensionData|DataStorage|RelativeMovement|Relative|EndDragon|DragonFight|LightTexture|Lightmap|ReceivingLevel|VertexBuffer|GlStateManager|ShaderInstance|ShaderProgram|Uniform|Program\.class)')
+          for jar in jars:
+              if not os.path.exists(jar):
+                  continue
+              try:
+                  listing = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
+              except Exception:
+                  continue
+              matches = [line for line in listing.splitlines() if needles.search(line)]
+              if matches:
+                  print('\n===', jar, '===')
+                  print('\n'.join(matches[:700]))
+          PY
+
       - name: Build
         run: ./gradlew build --stacktrace
 
