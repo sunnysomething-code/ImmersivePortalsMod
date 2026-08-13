@@ -51,12 +51,13 @@ loom {
     accessWidenerPath = file("src/main/resources/imm_ptl.accesswidener")
 }
 
-// Keep old Sodium/Iris implementation code out of the core port until those
-// integrations are updated against their 26.1.x APIs. Keep the no-op interface
-// stubs themselves so core code can compile and run without either mod.
+// Port the portal engine first. The peripheral module contains dimension-stack
+// screens, alternate-dimension helpers and registration code that depend on
+// APIs removed or moved in 26.1.x. Re-enable it after the core compiles.
 sourceSets {
     main {
         java {
+            exclude 'qouteall/imm_ptl/peripheral/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/iris/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/sodium/**'
             exclude { details ->
