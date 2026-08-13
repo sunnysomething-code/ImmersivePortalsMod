@@ -41,80 +41,6 @@ jobs:
       - name: Apply verified mechanical 26.1.2 renames
         run: python3 scripts/port_26_1_mechanical.py
 
-      - name: Probe Minecraft and Fabric 26.1.2 APIs
-        run: |
-          ./gradlew printClasspath > /tmp/classpath.txt
-          python3 - <<'PY' 2>&1 | tee probe.log
-          import os, re, subprocess
-          text = open('/tmp/classpath.txt', errors='ignore').read()
-          jars = [p for p in re.findall(r'\"([^\"\n]+\.jar)\"', text) if os.path.exists(p)]
-          cp = os.pathsep.join(jars)
-          mc = None
-          for jar in jars:
-              try:
-                  listing = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
-              except Exception:
-                  continue
-              if 'net/minecraft/world/item/Item.class' in listing:
-                  mc = jar
-                  break
-          print('MINECRAFT_JAR=', mc)
-          if not mc:
-              raise SystemExit(0)
-          classes = [
-              'net.minecraft.resources.ResourceKey',
-              'net.minecraft.world.level.ChunkPos',
-              'net.minecraft.nbt.CompoundTag',
-              'net.minecraft.world.level.storage.ValueInput',
-              'net.minecraft.world.level.storage.ValueOutput',
-              'net.minecraft.world.entity.Entity',
-              'net.minecraft.world.entity.EntityType',
-              'net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder',
-              'net.minecraft.server.MinecraftServer',
-              'net.minecraft.server.level.Ticket',
-              'net.minecraft.server.level.TicketType',
-              'net.minecraft.server.level.DistanceManager',
-              'net.minecraft.world.level.TicketStorage',
-              'net.minecraft.server.level.ServerLevel',
-              'net.minecraft.client.gui.GuiGraphicsExtractor',
-              'net.minecraft.client.renderer.Lightmap',
-              'net.minecraft.client.renderer.LightmapRenderStateExtractor',
-              'net.minecraft.client.renderer.LevelRenderer',
-              'net.minecraft.client.renderer.GameRenderer',
-              'net.minecraft.client.renderer.entity.EntityRenderer',
-              'net.minecraft.client.renderer.entity.EntityRendererProvider',
-              'net.minecraft.client.renderer.entity.state.EntityRenderState',
-              'net.minecraft.client.renderer.RenderPipelines',
-              'net.minecraft.client.renderer.rendertype.RenderType',
-              'net.minecraft.client.renderer.block.BlockRenderDispatcher',
-              'net.minecraft.client.resources.model.BakedModel',
-              'net.minecraft.client.renderer.block.model.BakedQuad',
-              'net.minecraft.client.particle.ParticleEngine',
-              'net.minecraft.client.Options',
-              'com.mojang.blaze3d.systems.RenderSystem',
-              'com.mojang.blaze3d.opengl.GlProgram',
-              'com.mojang.blaze3d.pipeline.CompiledRenderPipeline',
-              'com.mojang.blaze3d.vertex.VertexBuffer',
-              'com.mojang.blaze3d.vertex.BufferUploader',
-              'com.mojang.blaze3d.platform.GlUtil',
-              'net.minecraft.server.level.progress.ChunkProgressListener',
-              'net.minecraft.server.level.progress.ChunkProgressListenerFactory',
-              'net.minecraft.world.level.dimension.end.EnderDragonFight',
-              'net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab',
-              'net.fabricmc.fabric.api.block.v1.FabricBlock',
-              'net.fabricmc.fabric.api.client.command.v2.ClientCommands',
-          ]
-          for cls in classes:
-              print('\n##### JAVAP', cls, '#####')
-              subprocess.run(['javap','-classpath',cp,'-p',cls], check=False)
-          print('\n##### RELEVANT CLASSES #####')
-          listing = subprocess.check_output(['jar','tf',mc], text=True)
-          pat = re.compile(r'(ChunkProgress|GuiGraphics|TicketStorage|TeleportTransition|Lightmap|Fog|VertexBuffer|BufferUploader|GlUtil|Shader|BakedQuad|BakedModel|BlockRenderDispatcher|EntityRenderer|EnderDragonFight|RenderPipeline|LevelLoadingScreen|ParticleEngine|ValueInput|ValueOutput)')
-          for line in listing.splitlines():
-              if pat.search(line):
-                  print(line)
-          PY
-
       - name: Build and capture compiler output
         id: build
         shell: bash
@@ -136,7 +62,6 @@ jobs:
         with:
           name: build-output
           path: |
-            probe.log
             compile.log
             compile-errors.txt
             build/libs/**
