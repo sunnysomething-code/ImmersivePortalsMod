@@ -1,13 +1,14 @@
 package qouteall.imm_ptl.core.mixin.common.chunk_sync;
 
-import net.minecraft.server.level.ChunkTaskPriorityQueueSorter;
-import net.minecraft.util.thread.ProcessorMailbox;
-import net.minecraft.util.thread.StrictQueue;
+import net.minecraft.server.level.ThrottlingChunkTaskDispatcher;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ChunkTaskPriorityQueueSorter.class)
+/**
+ * Compatibility placeholder for the old ChunkTaskPriorityQueueSorter mixin.
+ * Minecraft 26.1 replaced that class with ThrottlingChunkTaskDispatcher.
+ * The old mailbox accessor is no longer used by Immersive Portals' custom
+ * chunk-ticket throttling, so this mixin intentionally has no accessors.
+ */
+@Mixin(ThrottlingChunkTaskDispatcher.class)
 public interface IEChunkTaskPriorityQueueSorter {
-    @Accessor("mailbox")
-    ProcessorMailbox<StrictQueue.IntRunnable> ip_getMailBox();
 }

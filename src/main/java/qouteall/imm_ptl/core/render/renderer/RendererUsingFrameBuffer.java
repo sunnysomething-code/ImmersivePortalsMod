@@ -1,7 +1,7 @@
 package qouteall.imm_ptl.core.render.renderer;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
@@ -26,11 +26,6 @@ public class RendererUsingFrameBuffer extends PortalRenderer {
     @Override
     public void onBeforeTranslucentRendering(Matrix4f modelView) {
         renderPortals(modelView);
-    }
-    
-    @Override
-    public void onAfterTranslucentRendering(Matrix4f modelView) {
-    
     }
     
     @Override
@@ -78,8 +73,7 @@ public class RendererUsingFrameBuffer extends PortalRenderer {
         GlStateManager._clearColor(1, 0, 1, 1);
         GlStateManager._clearDepth(1);
         GlStateManager._clear(
-            GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT,
-            Minecraft.ON_OSX
+            GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT
         );
         GL11.glDisable(GL11.GL_STENCIL_TEST);
         

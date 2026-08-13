@@ -1,62 +1,47 @@
 package qouteall.imm_ptl.core.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import qouteall.imm_ptl.core.IPCGlobal;
-import qouteall.imm_ptl.core.IPGlobal;
-import qouteall.imm_ptl.core.mc_utils.WireRenderingHelper;
 import qouteall.imm_ptl.core.portal.Portal;
-import qouteall.imm_ptl.core.render.context_management.PortalRendering;
 
 @Environment(EnvType.CLIENT)
-public class PortalEntityRenderer extends EntityRenderer<Portal> {
-    
+public class PortalEntityRenderer extends EntityRenderer<Portal, PortalEntityRenderer.PortalRenderState> {
+    public static class PortalRenderState extends EntityRenderState {
+        public Portal portal;
+    }
+
     public PortalEntityRenderer(EntityRendererProvider.Context context) {
         super(context);
     }
-    
+
     @Override
-    public void render(
-        Portal portal,
-        float yaw,
-        float partialTick,
-        PoseStack matrixStack,
-        MultiBufferSource bufferSource,
-        int light
+    public PortalRenderState createRenderState() {
+        return new PortalRenderState();
+    }
+
+    @Override
+    public void extractRenderState(Portal portal, PortalRenderState state, float partialTick) {
+        super.extractRenderState(portal, state, partialTick);
+        state.portal = portal;
+    }
+
+    @Override
+    public void submit(
+        PortalRenderState state,
+        PoseStack poseStack,
+        SubmitNodeCollector submitNodeCollector,
+        CameraRenderState cameraRenderState
     ) {
-        
-        IPCGlobal.renderer.renderPortalInEntityRenderer(portal);
-        
-        if (OverlayRendering.shouldRenderOverlay(portal)) {
-            OverlayRendering.onRenderPortalEntity(portal, matrixStack, bufferSource);
+        if (state.portal != null) {
+            IPCGlobal.renderer.renderPortalInEntityRenderer(state.portal);
         }
-    
-        if (IPGlobal.debugRenderPortalShapeMesh && !PortalRendering.isRendering()) {
-            VertexConsumer lineVertexConsumer = bufferSource.getBuffer(RenderType.lines());
-            WireRenderingHelper.renderPortalShapeMeshDebug(
-                matrixStack, lineVertexConsumer, portal
-            );
-        }
-        
-        super.render(portal, yaw, partialTick, matrixStack, bufferSource, light);
+        super.submit(state, poseStack, submitNodeCollector, cameraRenderState);
     }
-    
-    @Override
-    public ResourceLocation getTextureLocation(Portal portal) {
-//        if (portal instanceof BreakablePortalEntity) {
-//            if (((BreakablePortalEntity) portal).overlayBlockState != null) {
-//                return SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE;
-//            }
-//        }
-        return null;
-    }
-    
-    
 }

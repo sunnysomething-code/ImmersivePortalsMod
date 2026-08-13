@@ -10,8 +10,8 @@
   ],
   "contact": {
     "homepage": "https://qouteall.fun/immptl",
-    "sources": "https://github.com/iPortalTeam/ImmersivePortalsMod",
-    "issues": "https://github.com/iPortalTeam/ImmersivePortalsMod/discussions",
+    "sources": "https://github.com/sunnysomething-code/ImmersivePortalsMod",
+    "issues": "https://github.com/sunnysomething-code/ImmersivePortalsMod/issues",
     "email": "qouteall@163.com",
     "discord": "https://discord.gg/BZxgURK"
   },
@@ -44,9 +44,10 @@
     "q_misc_util.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.7.4",
-    "fabric-api": ">=0.109.0",
-    "minecraft": ["1.21", "1.21.1"],
+    "fabricloader": ">=0.19.3",
+    "fabric-api": ">=0.155.2",
+    "minecraft": "26.1.2",
+    "java": ">=25",
     "dimlib": "*"
   },
   "breaks": {
@@ -56,8 +57,6 @@
     "resolutioncontrol": "*",
     "canvas": "*",
     "cardboard": "*",
-    "iris": ["<1.8.0", ">1.8.0"],
-    "sodium": ["<0.6.0", ">0.6.0"],
     "gravity_api": "*",
     "vmp": "*"
   },
