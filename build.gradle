@@ -51,15 +51,21 @@ loom {
     accessWidenerPath = file("src/main/resources/imm_ptl.accesswidener")
 }
 
-// Keep old Sodium/Iris compatibility code out of the core port until those
-// integrations are updated against their 26.1.x APIs.
+// Keep old Sodium/Iris implementation code out of the core port until those
+// integrations are updated against their 26.1.x APIs. Keep the no-op interface
+// stubs themselves so core code can compile and run without either mod.
 sourceSets {
     main {
         java {
             exclude 'qouteall/imm_ptl/core/compat/mixin/iris/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/sodium/**'
-            exclude 'qouteall/imm_ptl/core/compat/sodium_compatibility/**'
-            exclude 'qouteall/imm_ptl/core/compat/iris_compatibility/**'
+            exclude { details ->
+                def path = details.path
+                (path.startsWith('qouteall/imm_ptl/core/compat/sodium_compatibility/') &&
+                    !path.endsWith('/SodiumInterface.java')) ||
+                (path.startsWith('qouteall/imm_ptl/core/compat/iris_compatibility/') &&
+                    !path.endsWith('/IrisInterface.java'))
+            }
         }
     }
 }
