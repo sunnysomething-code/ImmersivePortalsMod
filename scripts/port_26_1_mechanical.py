@@ -27,6 +27,8 @@ REPLACEMENTS = {
     "WeightedRandomList": "WeightedList",
     "net.fabricmc.fabric.api.client.command.v2.ClientCommandManager": "net.fabricmc.fabric.api.client.command.v2.ClientCommands",
     "ClientCommandManager": "ClientCommands",
+    "net.minecraft.world.InteractionResultHolder": "net.minecraft.world.InteractionResult",
+    "InteractionResultHolder<ItemStack>": "InteractionResult",
 }
 
 changed = 0
