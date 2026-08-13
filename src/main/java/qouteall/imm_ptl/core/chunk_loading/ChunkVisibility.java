@@ -1,6 +1,5 @@
 package qouteall.imm_ptl.core.chunk_loading;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
@@ -23,6 +22,10 @@ public class ChunkVisibility {
     
     private static final int portalLoadingRange = 48;
     public static final int secondaryPortalLoadingRange = 16;
+
+    private static ChunkPos chunkPosOf(Vec3 pos) {
+        return new ChunkPos(((int) Math.floor(pos.x)) >> 4, ((int) Math.floor(pos.z)) >> 4);
+    }
     
     public static ChunkLoader playerDirectLoader(ServerPlayer player) {
         return new ChunkLoader(
@@ -55,14 +58,11 @@ public class ChunkVisibility {
         
         int cap = Math.min(cap1, cap2);
         
-        // load more for scaling portal
         if (portal.getScale() > 2) {
             cap *= 2;
         }
         
-        int cappedLoadingDistance = Math.min(targetLoadingDistance, cap);
-        
-        return cappedLoadingDistance;
+        return Math.min(targetLoadingDistance, cap);
     }
     
     public static List<Portal> getNearbyPortals(
@@ -86,10 +86,8 @@ public class ChunkVisibility {
         
         if (result.size() > 100) {
             limitedLogger.err("too many portal nearby " + world + pos);
-            
             Optional<Portal> nearest =
                 result.stream().min(Comparator.comparingDouble(p -> p.getDistanceToNearestPointInPortal(pos)));
-            
             return List.of(nearest.get());
         }
         
@@ -102,7 +100,6 @@ public class ChunkVisibility {
         if (portal.getIsGlobal()) {
             int renderDistance = Math.min(
                 IPGlobal.indirectLoadingRadiusCap * 2,
-                //load a little more to make dimension stack more complete
                 Math.max(
                     2,
                     McHelper.getPlayerLoadDistance(player) -
@@ -113,9 +110,7 @@ public class ChunkVisibility {
             return new ChunkLoader(
                 new DimensionalChunkPos(
                     portal.getDestDim(),
-                    new ChunkPos(BlockPos.containing(
-                        portal.transformPoint(player.position())
-                    ))
+                    chunkPosOf(portal.transformPoint(player.position()))
                 ),
                 renderDistance
             );
@@ -124,7 +119,6 @@ public class ChunkVisibility {
             int loadDistance = McHelper.getPlayerLoadDistance(player);
             double distance = portal.getDistanceToNearestPointInPortal(player.position());
             
-            // load more for up scaling portal
             if (portal.getScaling() > 2 && distance < 5) {
                 loadDistance = (int) ((portal.getDestAreaRadiusEstimation() * 1.4) / 16);
             }
@@ -132,7 +126,7 @@ public class ChunkVisibility {
             return new ChunkLoader(
                 new DimensionalChunkPos(
                     portal.getDestDim(),
-                    new ChunkPos(BlockPos.containing(portal.getDestPos()))
+                    chunkPosOf(portal.getDestPos())
                 ),
                 getCappedLoadingDistance(
                     portal, player,
@@ -157,7 +151,7 @@ public class ChunkVisibility {
             return new ChunkLoader(
                 new DimensionalChunkPos(
                     portal.getDestDim(),
-                    new ChunkPos(BlockPos.containing(transformedPos))
+                    chunkPosOf(transformedPos)
                 ),
                 renderDistance
             );
@@ -166,7 +160,7 @@ public class ChunkVisibility {
             return new ChunkLoader(
                 new DimensionalChunkPos(
                     portal.getDestDim(),
-                    new ChunkPos(BlockPos.containing(portal.getDestPos()))
+                    chunkPosOf(portal.getDestPos())
                 ),
                 getCappedLoadingDistance(
                     portal, player, loadDistance / 4
@@ -175,10 +169,6 @@ public class ChunkVisibility {
         }
     }
     
-    //includes:
-    //1.player direct loader
-    //2.loaders from the portals that are directly visible
-    //3.loaders from the portals that are indirectly visible through portals
     public static void foreachBaseChunkLoaders(
         ServerPlayer player, Consumer<ChunkLoader> func
     ) {
@@ -187,9 +177,8 @@ public class ChunkVisibility {
         int indirectVisiblePortalRangeChunks = PerformanceLevel.getIndirectVisiblePortalRangeChunks(perfLevel);
         
         ChunkLoader playerDirectLoader = playerDirectLoader(player);
-    
         func.accept(playerDirectLoader);
-    
+        
         List<Portal> nearbyPortals = getNearbyPortals(
             ((ServerLevel) player.level()),
             player.position(),
@@ -199,15 +188,13 @@ public class ChunkVisibility {
         
         for (Portal portal : nearbyPortals) {
             Level destinationWorld = portal.getDestinationWorld();
-    
             if (destinationWorld == null) {
                 continue;
             }
-    
-            Vec3 transformedPlayerPos = portal.transformPoint(player.position());
             
+            Vec3 transformedPlayerPos = portal.transformPoint(player.position());
             func.accept(getGeneralDirectPortalLoader(player, portal));
-    
+            
             if (!isShrinkLoading()) {
                 List<Portal> indirectNearbyPortals = getNearbyPortals(
                     ((ServerLevel) destinationWorld),
@@ -215,7 +202,7 @@ public class ChunkVisibility {
                     p -> p.broadcastToPlayer(player),
                     indirectVisiblePortalRangeChunks, 32
                 );
-    
+                
                 for (Portal innerPortal : indirectNearbyPortals) {
                     func.accept(getGeneralPortalIndirectLoader(
                         player, transformedPlayerPos, innerPortal
@@ -228,5 +215,4 @@ public class ChunkVisibility {
     public static boolean isShrinkLoading() {
         return ServerPerformanceMonitor.getLevel() != PerformanceLevel.good;
     }
-    
 }
