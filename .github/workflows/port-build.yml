@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - 26.1.2-port
-  pull_request:
-    branches:
-      - 1.21
   workflow_dispatch:
+
+concurrency:
+  group: port-26.1.2
+  cancel-in-progress: true
 
 permissions:
   contents: read
