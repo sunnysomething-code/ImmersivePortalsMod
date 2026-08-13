@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -31,28 +31,14 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Import upstream 1.21.3 renderer migration once
+      - name: Import upstream 1.21.3 renderer migration if needed
         run: |
           if [ ! -f .port-1.21.3-imported ]; then
             bash scripts/import_upstream_1_21_3.sh
-            touch .port-1.21.3-imported
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/main/java src/main/resources .port-1.21.3-imported
-            git commit -m "Import upstream 1.21.3 renderer migration"
-            git push origin HEAD:26.1.2-port
           fi
 
       - name: Apply verified mechanical 26.1.2 renames
-        run: |
-          python3 scripts/port_26_1_mechanical.py
-          if ! git diff --quiet -- src/main/java; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/main/java
-            git commit -m "Apply verified Minecraft 26.1.2 class renames"
-            git push origin HEAD:26.1.2-port
-          fi
+        run: python3 scripts/port_26_1_mechanical.py
 
       - name: Probe Minecraft and Fabric 26.1.2 APIs
         run: |
@@ -75,8 +61,6 @@ jobs:
           if not mc:
               raise SystemExit(0)
           classes = [
-              'net.minecraft.world.item.Item',
-              'net.minecraft.world.InteractionResult',
               'net.minecraft.server.MinecraftServer',
               'net.minecraft.server.level.Ticket',
               'net.minecraft.server.level.TicketType',
@@ -85,14 +69,11 @@ jobs:
               'net.minecraft.server.level.ThrottlingChunkTaskDispatcher',
               'net.minecraft.world.level.TicketStorage',
               'net.minecraft.server.level.ServerLevel',
-              'net.minecraft.server.network.ServerGamePacketListenerImpl',
-              'net.minecraft.world.level.chunk.ChunkGenerator',
-              'net.minecraft.client.gui.screens.Screen',
               'net.minecraft.client.gui.GuiGraphicsExtractor',
               'net.minecraft.client.renderer.Lightmap',
               'net.minecraft.client.renderer.LevelRenderer',
               'net.minecraft.client.renderer.GameRenderer',
-              'net.minecraft.client.renderer.ParticleEngine',
+              'net.minecraft.client.particle.ParticleEngine',
               'net.minecraft.client.Options',
               'net.minecraft.client.renderer.RenderPipelines',
               'com.mojang.blaze3d.systems.RenderSystem',
@@ -105,23 +86,12 @@ jobs:
           for cls in classes:
               print('\n##### JAVAP', cls, '#####')
               subprocess.run(['javap','-classpath',cp,'-p',cls], check=False)
-          print('\n##### RELEVANT MINECRAFT CLASSES #####')
+          print('\n##### RELEVANT CLASSES #####')
           listing = subprocess.check_output(['jar','tf',mc], text=True)
-          pat = re.compile(r'(ChunkProgress|GuiGraphics|InteractionResult|Weighted(List|Random)|GenerationStep|Carv|Ticket(Type)?\.class|DistanceManager|ChunkTask|SavedDataStorage|Relative\.class|Teleport|Lightmap|LightTexture|FogParameters|VertexBuffer|GraphicsStatus|CoreShaders|ShaderProgram|CompiledShader|GlProgram|ReceivingLevelScreen|LoadingScreen|RenderPipeline|GraphicsMode|CloudStatus|ParticleEngine)')
+          pat = re.compile(r'(ChunkProgress|GuiGraphics|TicketStorage|TeleportTransition|Lightmap|Fog|VertexBuffer|GraphicsMode|RenderPipeline|LevelLoadingScreen|ParticleEngine)')
           for line in listing.splitlines():
               if pat.search(line):
                   print(line)
-          print('\n##### RELEVANT FABRIC CLASSES #####')
-          fpat = re.compile(r'(ClientCommands|FabricCreativeModeTab|BlockRender|RenderLayer|FabricBlock|CreativeTab)')
-          for jar in jars:
-              try:
-                  listing = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
-              except Exception:
-                  continue
-              matches = [x for x in listing.splitlines() if fpat.search(x)]
-              if matches:
-                  print('===', jar, '===')
-                  print('\n'.join(matches[:300]))
           PY
 
       - name: Build
