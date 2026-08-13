@@ -31,12 +31,80 @@ REPLACEMENTS = {
     "InteractionResultHolder<ItemStack>": "InteractionResult",
 }
 
+PATH_REPLACEMENTS = {
+    "qouteall/imm_ptl/core/render/renderer/PortalRenderer.java": [
+        ("import net.minecraft.client.GraphicsStatus;\n", ""),
+        ("import qouteall.imm_ptl.core.compat.iris_compatibility.ExperimentalIrisPortalRenderer;\n", ""),
+        ("import qouteall.imm_ptl.core.compat.iris_compatibility.IrisCompatibilityPortalRenderer;\n", ""),
+        ("import qouteall.imm_ptl.core.compat.iris_compatibility.IrisPortalRenderer;\n", ""),
+        ('''        if (Minecraft.getInstance().options.graphicsMode().get() == GraphicsStatus.FABULOUS) {
+            if (!fabulousWarned) {
+                fabulousWarned = true;
+                CHelper.printChat(Component.translatable("imm_ptl.fabulous_warning"));
+            }
+        }
+        
+''', ""),
+        ('''        if (IrisInterface.invoker.isIrisPresent()) {
+            if (IrisInterface.invoker.isShaders()) {
+                if (IPCGlobal.experimentalIrisPortalRenderer) {
+                    switchRenderer(ExperimentalIrisPortalRenderer.instance);
+                    return;
+                }
+                
+                switch (IPGlobal.renderMode) {
+                    case normal -> switchRenderer(IrisPortalRenderer.instance);
+                    case compatibility -> switchRenderer(IrisCompatibilityPortalRenderer.instance);
+                    case debug -> switchRenderer(IrisCompatibilityPortalRenderer.debugModeInstance);
+                    case none -> switchRenderer(IPCGlobal.rendererDummy);
+                }
+                return;
+            }
+        }
+        
+''', ""),
+    ],
+    "qouteall/imm_ptl/core/platform_specific/IPModEntryClient.java": [
+        ("import qouteall.imm_ptl.core.compat.iris_compatibility.ExperimentalIrisPortalRenderer;\n", ""),
+        ("            SodiumInterface.invoker = new SodiumInterface.OnSodiumPresent();\n", "            Helper.log(\"Sodium integration is temporarily disabled on the 26.1.2 port\");\n"),
+        ('''        if (FabricLoader.getInstance().isModLoaded("iris")) {
+            Helper.log("Iris is present");
+            IrisInterface.invoker = new IrisInterface.OnIrisPresent();
+            ExperimentalIrisPortalRenderer.init();
+            
+            IPGlobal.CLIENT_TASK_LIST.addTask(MyTaskList.oneShotTask(() -> {
+                if (IPConfig.getConfig().shouldDisplayWarning("iris")) {
+                    CHelper.printChat(
+                        Component.translatable("imm_ptl.iris_warning")
+                            .append(IPMcHelper.getDisableWarningText("iris"))
+                    );
+                }
+            }));
+        }
+        else {
+            Helper.log("Iris is not present");
+        }
+''', '''        if (FabricLoader.getInstance().isModLoaded("iris")) {
+            Helper.log("Iris integration is temporarily disabled on the 26.1.2 port");
+        }
+        else {
+            Helper.log("Iris is not present");
+        }
+'''),
+    ],
+}
+
 changed = 0
 for path in ROOT.rglob("*.java"):
     old = path.read_text(encoding="utf-8")
     new = old
     for before, after in REPLACEMENTS.items():
         new = new.replace(before, after)
+
+    rel = path.relative_to(ROOT).as_posix()
+    for before, after in PATH_REPLACEMENTS.get(rel, []):
+        new = new.replace(before, after)
+
     if new != old:
         path.write_text(new, encoding="utf-8")
         changed += 1
