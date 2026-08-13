@@ -11,8 +11,12 @@ REPLACEMENTS = {
     "net.minecraft.client.renderer.FogRenderer": "net.minecraft.client.renderer.fog.FogRenderer",
     "net.minecraft.client.renderer.RenderType": "net.minecraft.client.renderer.rendertype.RenderType",
     "net.minecraft.world.entity.projectile.AbstractArrow": "net.minecraft.world.entity.projectile.arrow.AbstractArrow",
+    "net.minecraft.world.entity.projectile.Arrow": "net.minecraft.world.entity.projectile.arrow.Arrow",
     "net.minecraft.world.entity.projectile.ThrownEnderpearl": "net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl",
+    "net.minecraft.world.level.dimension.end.EndDragonFight": "net.minecraft.world.level.dimension.end.EnderDragonFight",
     "com.mojang.blaze3d.platform.GlDebug": "com.mojang.blaze3d.opengl.GlDebug",
+    "com.mojang.blaze3d.platform.GlStateManager": "com.mojang.blaze3d.opengl.GlStateManager",
+    "com.mojang.blaze3d.shaders.Uniform": "com.mojang.blaze3d.opengl.Uniform",
 }
 
 changed = 0
