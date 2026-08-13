@@ -59,6 +59,7 @@ sourceSets {
             exclude 'qouteall/imm_ptl/core/compat/mixin/iris/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/sodium/**'
             exclude 'qouteall/imm_ptl/core/compat/sodium_compatibility/**'
+            exclude 'qouteall/imm_ptl/core/compat/iris_compatibility/**'
         }
     }
 }
