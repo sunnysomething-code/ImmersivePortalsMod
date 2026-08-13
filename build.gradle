@@ -42,19 +42,25 @@ repositories {
     }
 
     maven {
-        url = "https://maven.parchmentmc.org"
-    }
-
-    maven {
         name = 'Ladysnake'
         url = 'https://maven.ladysnake.org/releases'
     }
-
-    maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
 }
 
 loom {
     accessWidenerPath = file("src/main/resources/imm_ptl.accesswidener")
+}
+
+// Keep old Sodium/Iris compatibility code out of the core port until those
+// integrations are updated against their 26.1.x APIs.
+sourceSets {
+    main {
+        java {
+            exclude 'qouteall/imm_ptl/core/compat/mixin/iris/**'
+            exclude 'qouteall/imm_ptl/core/compat/mixin/sodium/**'
+            exclude 'qouteall/imm_ptl/core/compat/sodium_compatibility/**'
+        }
+    }
 }
 
 dependencies {
@@ -66,15 +72,11 @@ dependencies {
         exclude module: "fabric-gametest-api-v1"
     }
 
-    // The old Cloth Config, Mod Menu, Sodium, Iris, Gravity Changer and DimLib
-    // dependencies target Minecraft 1.21.x and cannot be loaded or remapped on 26.1.
-    // Re-add each dependency here only after a 26.1.2-compatible build (or port) exists.
-
-    if (project.enable_iris.equals('true')) {
-        implementation "org.anarres:jcpp:1.4.14"
-        implementation 'io.github.douira:glsl-transformer:2.0.0-pre13'
-        implementation 'org.antlr:antlr4-runtime:4.11.1'
+    // 26.1.2-compatible configuration UI dependencies.
+    implementation("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
+        exclude group: "net.fabricmc.fabric-api"
     }
+    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     if (project.enable_test_mod.equals('true')) {
         fileTree(dir: 'deps', include: '*.jar').each {
