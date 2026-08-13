@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "src" / "main" / "java"
@@ -32,6 +33,51 @@ REPLACEMENTS = {
 }
 
 PATH_REPLACEMENTS = {
+    "qouteall/imm_ptl/core/portal/Portal.java": [
+        ("import net.minecraft.core.Direction;\n", "import net.minecraft.core.Direction;\nimport net.minecraft.core.registries.Registries;\n"),
+        ("import net.minecraft.world.level.Level;\n", "import net.minecraft.world.level.Level;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\n"),
+        ("public static final EntityType<Portal> ENTITY_TYPE = createPortalEntityType(Portal::new);",
+         "public static final EntityType<Portal> ENTITY_TYPE = createPortalEntityType(\"portal\", Portal::new);"),
+        ("public static <T extends Portal> EntityType<T> createPortalEntityType(\n        EntityType.EntityFactory<T> constructor\n    ) {",
+         "public static <T extends Portal> EntityType<T> createPortalEntityType(\n        String id, EntityType.EntityFactory<T> constructor\n    ) {"),
+        ("            .forceTrackedVelocityUpdates(true)\n            .build();",
+         "            .forceTrackedVelocityUpdates(true)\n            .build(ResourceKey.create(\n                Registries.ENTITY_TYPE,\n                McHelper.newIdentifier(\"immersive_portals\", id)\n            ));"),
+        ("protected void readAdditionalSaveData(CompoundTag compoundTag) {",
+         "protected void readAdditionalSaveData(ValueInput valueInput) {\n        CompoundTag compoundTag = PortalDataCompat.read(valueInput);"),
+        ("protected void addAdditionalSaveData(CompoundTag compoundTag) {",
+         "protected void addAdditionalSaveData(ValueOutput valueOutput) {\n        CompoundTag compoundTag = new CompoundTag();"),
+        ("        WRITE_PORTAL_DATA_SIGNAL.invoker().accept(this, compoundTag);\n        \n    }",
+         "        WRITE_PORTAL_DATA_SIGNAL.invoker().accept(this, compoundTag);\n        PortalDataCompat.write(valueOutput, compoundTag);\n        \n    }"),
+    ],
+    "qouteall/imm_ptl/core/portal/nether_portal/NetherPortalEntity.java": [
+        ("createPortalEntityType(NetherPortalEntity::new)", "createPortalEntityType(\"nether_portal_new\", NetherPortalEntity::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/EndPortalEntity.java": [
+        ("createPortalEntityType(EndPortalEntity::new)", "createPortalEntityType(\"end_portal\", EndPortalEntity::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/Mirror.java": [
+        ("createPortalEntityType(Mirror::new)", "createPortalEntityType(\"mirror\", Mirror::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/BreakableMirror.java": [
+        ("createPortalEntityType(BreakableMirror::new)", "createPortalEntityType(\"breakable_mirror\", BreakableMirror::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/global_portals/GlobalTrackedPortal.java": [
+        ("createPortalEntityType(GlobalTrackedPortal::new)", "createPortalEntityType(\"global_tracked_portal\", GlobalTrackedPortal::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/global_portals/WorldWrappingPortal.java": [
+        ("createPortalEntityType(WorldWrappingPortal::new)", "createPortalEntityType(\"border_portal\", WorldWrappingPortal::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/global_portals/VerticalConnectingPortal.java": [
+        ("createPortalEntityType(VerticalConnectingPortal::new)", "createPortalEntityType(\"end_floor_portal\", VerticalConnectingPortal::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/nether_portal/GeneralBreakablePortal.java": [
+        ("createPortalEntityType(GeneralBreakablePortal::new)", "createPortalEntityType(\"general_breakable_portal\", GeneralBreakablePortal::new)"),
+    ],
+    "qouteall/imm_ptl/core/portal/LoadingIndicatorEntity.java": [
+        ("import net.minecraft.core.BlockPos;\n", "import net.minecraft.core.BlockPos;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.resources.ResourceKey;\n"),
+        ("        ).fireImmune().trackable(96, 20).build();",
+         "        ).fireImmune().trackable(96, 20).build(\n            ResourceKey.create(Registries.ENTITY_TYPE, qouteall.imm_ptl.core.McHelper.newIdentifier(\"immersive_portals\", \"loading_indicator\"))\n        );"),
+    ],
     "qouteall/imm_ptl/core/render/renderer/PortalRenderer.java": [
         ("import net.minecraft.client.GraphicsStatus;\n", ""),
         ("import qouteall.imm_ptl.core.compat.iris_compatibility.ExperimentalIrisPortalRenderer;\n", ""),
@@ -92,7 +138,27 @@ PATH_REPLACEMENTS = {
         }
 '''),
     ],
+    "qouteall/imm_ptl/core/IPMcHelper.java": [
+        ("import com.mojang.blaze3d.platform.GlUtil;", "import com.mojang.blaze3d.systems.RenderSystem;"),
+        ("GlUtil.getVendor()", "RenderSystem.getBackendDescription()"),
+    ],
 }
+
+# 26.1's NBT convenience getters became Optional-returning. Existing 1.21
+# call sites expect the old defaulting behavior, so migrate literal-key calls
+# to the explicit *Or methods. Restricting this to literal keys avoids changing
+# new code that intentionally consumes Optional values.
+def migrate_nbt_getters(text: str) -> str:
+    text = re.sub(r'\.getDouble\("([^"]+)"\)', r'.getDoubleOr("\1", 0.0)', text)
+    text = re.sub(r'\.getFloat\("([^"]+)"\)', r'.getFloatOr("\1", 0.0F)', text)
+    text = re.sub(r'\.getLong\("([^"]+)"\)', r'.getLongOr("\1", 0L)', text)
+    text = re.sub(r'\.getInt\("([^"]+)"\)', r'.getIntOr("\1", 0)', text)
+    text = re.sub(r'\.getBoolean\("([^"]+)"\)', r'.getBooleanOr("\1", false)', text)
+    text = re.sub(r'\.getString\("([^"]+)"\)', r'.getStringOr("\1", "")', text)
+    text = re.sub(r'\.getCompound\("([^"]+)"\)', r'.getCompoundOrEmpty("\1")', text)
+    text = re.sub(r'\.getList\("([^"]+)",\s*\d+\)', r'.getListOrEmpty("\1")', text)
+    text = text.replace('.getAsString()', '.asString().orElse("")')
+    return text
 
 changed = 0
 for path in ROOT.rglob("*.java"):
@@ -104,6 +170,8 @@ for path in ROOT.rglob("*.java"):
     rel = path.relative_to(ROOT).as_posix()
     for before, after in PATH_REPLACEMENTS.get(rel, []):
         new = new.replace(before, after)
+
+    new = migrate_nbt_getters(new)
 
     if new != old:
         path.write_text(new, encoding="utf-8")
