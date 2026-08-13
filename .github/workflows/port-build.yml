@@ -54,6 +54,65 @@ jobs:
             git push origin HEAD:26.1.2-port
           fi
 
+      - name: Probe Minecraft and Fabric 26.1.2 APIs
+        run: |
+          ./gradlew printClasspath > /tmp/classpath.txt
+          python3 - <<'PY'
+          import os, re, subprocess
+          text = open('/tmp/classpath.txt', errors='ignore').read()
+          jars = [p for p in re.findall(r'"([^"\n]+\.jar)"', text) if os.path.exists(p)]
+          mc = None
+          for jar in jars:
+              try:
+                  listing = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
+              except Exception:
+                  continue
+              if 'net/minecraft/world/item/Item.class' in listing:
+                  mc = jar
+                  break
+          print('MINECRAFT_JAR=', mc)
+          if not mc:
+              raise SystemExit(0)
+          classes = [
+              'net.minecraft.world.item.Item',
+              'net.minecraft.world.InteractionResult',
+              'net.minecraft.server.level.Ticket',
+              'net.minecraft.server.level.TicketType',
+              'net.minecraft.server.level.DistanceManager',
+              'net.minecraft.server.level.ChunkTaskDispatcher',
+              'net.minecraft.server.level.ThrottlingChunkTaskDispatcher',
+              'net.minecraft.server.level.ServerLevel',
+              'net.minecraft.server.network.ServerGamePacketListenerImpl',
+              'net.minecraft.world.level.chunk.ChunkGenerator',
+              'net.minecraft.client.gui.screens.Screen',
+              'net.minecraft.client.gui.GuiGraphicsExtractor',
+              'net.minecraft.client.renderer.Lightmap',
+              'net.minecraft.client.renderer.LevelRenderer',
+              'net.minecraft.client.renderer.GameRenderer',
+              'com.mojang.blaze3d.opengl.GlProgram',
+          ]
+          for cls in classes:
+              print('\n##### JAVAP', cls, '#####')
+              subprocess.run(['javap','-classpath',mc,'-p',cls], check=False)
+          print('\n##### RELEVANT MINECRAFT CLASSES #####')
+          listing = subprocess.check_output(['jar','tf',mc], text=True)
+          pat = re.compile(r'(ChunkProgress|GuiGraphics|InteractionResult|Weighted(List|Random)|GenerationStep|Carv|Ticket(Type)?\.class|DistanceManager|ChunkTask|SavedDataStorage|Relative\.class|DimensionTransition|Teleport|Lightmap|LightTexture|FogParameters|VertexBuffer|GraphicsStatus|CoreShaders|ShaderProgram|CompiledShader|GlProgram|ReceivingLevelScreen|LoadingScreen|RenderPipeline)')
+          for line in listing.splitlines():
+              if pat.search(line):
+                  print(line)
+          print('\n##### RELEVANT FABRIC CLASSES #####')
+          fpat = re.compile(r'(ClientCommands|FabricCreativeModeTab|BlockRender|RenderLayer|FabricBlock|CreativeTab)')
+          for jar in jars:
+              try:
+                  listing = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
+              except Exception:
+                  continue
+              matches = [x for x in listing.splitlines() if fpat.search(x)]
+              if matches:
+                  print('===', jar, '===')
+                  print('\n'.join(matches[:300]))
+          PY
+
       - name: Build
         run: ./gradlew build --stacktrace
 
