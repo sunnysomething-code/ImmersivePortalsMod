@@ -64,8 +64,11 @@ jobs:
               'net.minecraft.resources.ResourceKey',
               'net.minecraft.world.level.ChunkPos',
               'net.minecraft.nbt.CompoundTag',
+              'net.minecraft.world.level.storage.ValueInput',
+              'net.minecraft.world.level.storage.ValueOutput',
               'net.minecraft.world.entity.Entity',
               'net.minecraft.world.entity.EntityType',
+              'net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder',
               'net.minecraft.server.MinecraftServer',
               'net.minecraft.server.level.Ticket',
               'net.minecraft.server.level.TicketType',
@@ -105,7 +108,7 @@ jobs:
               subprocess.run(['javap','-classpath',cp,'-p',cls], check=False)
           print('\n##### RELEVANT CLASSES #####')
           listing = subprocess.check_output(['jar','tf',mc], text=True)
-          pat = re.compile(r'(ChunkProgress|GuiGraphics|TicketStorage|TeleportTransition|Lightmap|Fog|VertexBuffer|BufferUploader|GlUtil|Shader|BakedQuad|BakedModel|BlockRenderDispatcher|EntityRenderer|EnderDragonFight|RenderPipeline|LevelLoadingScreen|ParticleEngine)')
+          pat = re.compile(r'(ChunkProgress|GuiGraphics|TicketStorage|TeleportTransition|Lightmap|Fog|VertexBuffer|BufferUploader|GlUtil|Shader|BakedQuad|BakedModel|BlockRenderDispatcher|EntityRenderer|EnderDragonFight|RenderPipeline|LevelLoadingScreen|ParticleEngine|ValueInput|ValueOutput)')
           for line in listing.splitlines():
               if pat.search(line):
                   print(line)
