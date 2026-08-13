@@ -61,6 +61,7 @@ jobs:
           import os, re, subprocess
           text = open('/tmp/classpath.txt', errors='ignore').read()
           jars = [p for p in re.findall(r'"([^"\n]+\.jar)"', text) if os.path.exists(p)]
+          cp = os.pathsep.join(jars)
           mc = None
           for jar in jars:
               try:
@@ -76,11 +77,13 @@ jobs:
           classes = [
               'net.minecraft.world.item.Item',
               'net.minecraft.world.InteractionResult',
+              'net.minecraft.server.MinecraftServer',
               'net.minecraft.server.level.Ticket',
               'net.minecraft.server.level.TicketType',
               'net.minecraft.server.level.DistanceManager',
               'net.minecraft.server.level.ChunkTaskDispatcher',
               'net.minecraft.server.level.ThrottlingChunkTaskDispatcher',
+              'net.minecraft.world.level.TicketStorage',
               'net.minecraft.server.level.ServerLevel',
               'net.minecraft.server.network.ServerGamePacketListenerImpl',
               'net.minecraft.world.level.chunk.ChunkGenerator',
@@ -89,14 +92,22 @@ jobs:
               'net.minecraft.client.renderer.Lightmap',
               'net.minecraft.client.renderer.LevelRenderer',
               'net.minecraft.client.renderer.GameRenderer',
+              'net.minecraft.client.renderer.ParticleEngine',
+              'net.minecraft.client.Options',
+              'net.minecraft.client.renderer.RenderPipelines',
+              'com.mojang.blaze3d.systems.RenderSystem',
               'com.mojang.blaze3d.opengl.GlProgram',
+              'com.mojang.blaze3d.pipeline.CompiledRenderPipeline',
+              'net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab',
+              'net.fabricmc.fabric.api.block.v1.FabricBlock',
+              'net.fabricmc.fabric.api.client.command.v2.ClientCommands',
           ]
           for cls in classes:
               print('\n##### JAVAP', cls, '#####')
-              subprocess.run(['javap','-classpath',mc,'-p',cls], check=False)
+              subprocess.run(['javap','-classpath',cp,'-p',cls], check=False)
           print('\n##### RELEVANT MINECRAFT CLASSES #####')
           listing = subprocess.check_output(['jar','tf',mc], text=True)
-          pat = re.compile(r'(ChunkProgress|GuiGraphics|InteractionResult|Weighted(List|Random)|GenerationStep|Carv|Ticket(Type)?\.class|DistanceManager|ChunkTask|SavedDataStorage|Relative\.class|DimensionTransition|Teleport|Lightmap|LightTexture|FogParameters|VertexBuffer|GraphicsStatus|CoreShaders|ShaderProgram|CompiledShader|GlProgram|ReceivingLevelScreen|LoadingScreen|RenderPipeline)')
+          pat = re.compile(r'(ChunkProgress|GuiGraphics|InteractionResult|Weighted(List|Random)|GenerationStep|Carv|Ticket(Type)?\.class|DistanceManager|ChunkTask|SavedDataStorage|Relative\.class|Teleport|Lightmap|LightTexture|FogParameters|VertexBuffer|GraphicsStatus|CoreShaders|ShaderProgram|CompiledShader|GlProgram|ReceivingLevelScreen|LoadingScreen|RenderPipeline|GraphicsMode|CloudStatus|ParticleEngine)')
           for line in listing.splitlines():
               if pat.search(line):
                   print(line)
