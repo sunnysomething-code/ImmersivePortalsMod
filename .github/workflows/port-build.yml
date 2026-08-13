@@ -46,7 +46,7 @@ jobs:
           python3 - <<'PY'
           import os, re, subprocess
           text = open('/tmp/classpath.txt', errors='ignore').read()
-          jars = [p for p in re.findall(r'"([^"\n]+\.jar)"', text) if os.path.exists(p)]
+          jars = [p for p in re.findall(r'\"([^\"\n]+\.jar)\"', text) if os.path.exists(p)]
           cp = os.pathsep.join(jars)
           mc = None
           for jar in jars:
@@ -94,15 +94,29 @@ jobs:
                   print(line)
           PY
 
-      - name: Build
-        run: ./gradlew build --stacktrace
+      - name: Build and capture compiler output
+        id: build
+        shell: bash
+        run: |
+          set +e
+          ./gradlew build --stacktrace --console=plain 2>&1 | tee compile.log
+          status=${PIPESTATUS[0]}
+          grep -n -E 'error:|cannot find symbol|package .* does not exist|FAILURE:|What went wrong|Execution failed' compile.log | head -n 500 > compile-errors.txt || true
+          echo "Gradle exit status: $status" >> compile-errors.txt
+          exit $status
 
-      - name: Upload build artifacts
+      - name: Print condensed compiler errors
+        if: failure()
+        run: cat compile-errors.txt || true
+
+      - name: Upload build and compiler artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-output
           path: |
+            compile.log
+            compile-errors.txt
             build/libs/**
             build/reports/**
           if-no-files-found: ignore
