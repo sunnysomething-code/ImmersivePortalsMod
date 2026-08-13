@@ -17,6 +17,16 @@ REPLACEMENTS = {
     "com.mojang.blaze3d.platform.GlDebug": "com.mojang.blaze3d.opengl.GlDebug",
     "com.mojang.blaze3d.platform.GlStateManager": "com.mojang.blaze3d.opengl.GlStateManager",
     "com.mojang.blaze3d.shaders.Uniform": "com.mojang.blaze3d.opengl.Uniform",
+    "net.minecraft.world.level.storage.DimensionDataStorage": "net.minecraft.world.level.storage.SavedDataStorage",
+    "DimensionDataStorage": "SavedDataStorage",
+    "net.minecraft.world.entity.RelativeMovement": "net.minecraft.world.entity.Relative",
+    "RelativeMovement": "Relative",
+    "net.minecraft.world.level.portal.DimensionTransition": "net.minecraft.world.level.portal.TeleportTransition",
+    "DimensionTransition": "TeleportTransition",
+    "net.minecraft.util.random.WeightedRandomList": "net.minecraft.util.random.WeightedList",
+    "WeightedRandomList": "WeightedList",
+    "net.fabricmc.fabric.api.client.command.v2.ClientCommandManager": "net.fabricmc.fabric.api.client.command.v2.ClientCommands",
+    "ClientCommandManager": "ClientCommands",
 }
 
 changed = 0
