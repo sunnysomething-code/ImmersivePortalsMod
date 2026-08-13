@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -25,6 +25,28 @@ jobs:
 
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
+
+      - name: Resolve and inspect Minecraft 26.1.2 classes
+        run: |
+          ./gradlew printClasspath > /tmp/classpath.txt
+          cat /tmp/classpath.txt
+          python3 - <<'PY'
+          import os, re, subprocess
+          text = open('/tmp/classpath.txt', errors='ignore').read()
+          jars = re.findall(r'"([^"\n]+\.jar)"', text)
+          needles = re.compile(r'(ResourceLocation|Identifier|GuiGraphics|GuiGraphicsExtractor|Util\.class|AbstractMinecart|Minecart|FogRenderer|RenderType|LightTexture|InteractionResultHolder|ChunkProgressListener|DimensionDataStorage|RelativeMovement|AbstractArrow|ThrownEnderpearl|EndDragonFight|GlDebug|ProcessorMailbox|ChunkTaskPriorityQueueSorter|WeightedRandomList)')
+          for jar in jars:
+              if not os.path.exists(jar):
+                  continue
+              try:
+                  out = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
+              except Exception:
+                  continue
+              matches = [line for line in out.splitlines() if needles.search(line)]
+              if matches:
+                  print('===', jar, '===')
+                  print('\n'.join(matches[:400]))
+          PY
 
       - name: Build
         run: ./gradlew build --stacktrace
