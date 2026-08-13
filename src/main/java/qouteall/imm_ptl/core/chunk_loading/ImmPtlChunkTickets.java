@@ -30,20 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
-/**
- * Manages Immersive Portals chunk tickets for one dimension.
- *
- * <p>Minecraft 26.1 moved region-ticket ownership out of DistanceManager and
- * into TicketStorage. The mod keeps its existing small throttling queue, but
- * all ticket creation/removal now goes through that storage.</p>
- */
 public class ImmPtlChunkTickets {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /**
-     * A non-expiring loading ticket. In 26.1 TicketType is no longer generic
-     * and custom types are represented directly by their timeout/flag record.
-     */
     public static final TicketType TICKET_TYPE =
         new TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING);
 
@@ -54,10 +43,12 @@ public class ImmPtlChunkTickets {
     public static final WeakHashMap<ServerLevel, ImmPtlChunkTickets> BY_DIMENSION = new WeakHashMap<>();
 
     public static void init() {
-        DimensionAPI.SERVER_PRE_REMOVE_DIMENSION_EVENT.register(
-            ImmPtlChunkTickets::onDimensionRemove
-        );
+        DimensionAPI.SERVER_PRE_REMOVE_DIMENSION_EVENT.register(ImmPtlChunkTickets::onDimensionRemove);
         IPGlobal.SERVER_CLEANUP_EVENT.register(ImmPtlChunkTickets::cleanup);
+    }
+
+    private static ChunkPos chunkPos(long packed) {
+        return new ChunkPos(ChunkPos.getX(packed), ChunkPos.getZ(packed));
     }
 
     public static class ChunkTicketInfo {
@@ -74,7 +65,6 @@ public class ImmPtlChunkTickets {
     private final ArrayList<LongLinkedOpenHashSet> chunksToAddTicketByDistance = new ArrayList<>();
     private final LongOpenHashSet waitingForLoading = new LongOpenHashSet();
     private boolean isValid = true;
-
     public final int throttlingLimit = 4;
 
     private ImmPtlChunkTickets() {
@@ -86,7 +76,6 @@ public class ImmPtlChunkTickets {
 
     public void markForLoading(long chunkPos, int distanceToSource, int generation) {
         Validate.isTrue(distanceToSource >= 0);
-
         ChunkTicketInfo info = chunkPosToTicketInfo.get(chunkPos);
         if (info == null) {
             info = new ChunkTicketInfo(generation, distanceToSource);
@@ -113,11 +102,7 @@ public class ImmPtlChunkTickets {
     }
 
     private LongLinkedOpenHashSet getQueueByDistance(int distanceToSource) {
-        return Helper.arrayListComputeIfAbsent(
-            chunksToAddTicketByDistance,
-            distanceToSource,
-            LongLinkedOpenHashSet::new
-        );
+        return Helper.arrayListComputeIfAbsent(chunksToAddTicketByDistance, distanceToSource, LongLinkedOpenHashSet::new);
     }
 
     public void tick(ServerLevel world) {
@@ -129,115 +114,73 @@ public class ImmPtlChunkTickets {
             LOGGER.error("Called in a non-server-main (or server-world) thread.", new Throwable());
             return;
         }
-
-        if (enableDebugRateStat) {
-            debugRateStat.update();
-        }
-
+        if (enableDebugRateStat) debugRateStat.update();
         if (!isValid) {
             LOGGER.error("flushing when invalid {}", world);
             return;
         }
-
-        if (!world.getServer().isRunning()) {
-            return;
-        }
+        if (!world.getServer().isRunning()) return;
 
         DistanceManager distanceManager = getDistanceManager(world);
-
-        waitingForLoading.removeIf((long chunkPos) -> {
-            ChunkHolder chunkHolder = getChunkHolder(world, chunkPos);
-            if (chunkHolder == null) {
-                return true;
-            }
-
+        waitingForLoading.removeIf((long packed) -> {
+            ChunkHolder chunkHolder = getChunkHolder(world, packed);
+            if (chunkHolder == null) return true;
             ChunkResult<LevelChunk> resultNow = chunkHolder.getEntityTickingChunkFuture().getNow(null);
-            if (resultNow == null) {
-                return false;
-            }
-
+            if (resultNow == null) return false;
             if (!resultNow.isSuccess()) {
-                LOGGER.error("Chunk loading failure {} {}", world, new ChunkPos(chunkPos));
+                LOGGER.error("Chunk loading failure {} {}", world, chunkPos(packed));
             }
             return true;
         });
 
         for (LongLinkedOpenHashSet queue : chunksToAddTicketByDistance) {
-            if (queue == null) {
-                continue;
-            }
-
+            if (queue == null) continue;
             while (!queue.isEmpty()) {
-                if (waitingForLoading.size() >= throttlingLimit) {
-                    return;
-                }
-
-                long chunkPos = queue.removeFirstLong();
-                if (chunkPosToTicketInfo.containsKey(chunkPos)) {
-                    addTicket(distanceManager, chunkPos);
-                    waitingForLoading.add(chunkPos);
+                if (waitingForLoading.size() >= throttlingLimit) return;
+                long packed = queue.removeFirstLong();
+                if (chunkPosToTicketInfo.containsKey(packed)) {
+                    addTicket(distanceManager, packed);
+                    waitingForLoading.add(packed);
                 }
                 else {
-                    LOGGER.warn("Chunk {} is not in the queue", new ChunkPos(chunkPos));
+                    LOGGER.warn("Chunk {} is not in the queue", chunkPos(packed));
                 }
             }
         }
     }
 
     private static TicketStorage getTicketStorage(DistanceManager distanceManager) {
-        return ((qouteall.imm_ptl.core.mixin.common.chunk_sync.IEDistanceManager) distanceManager)
-            .ip_getTicketStorage();
+        return ((qouteall.imm_ptl.core.mixin.common.chunk_sync.IEDistanceManager) distanceManager).ip_getTicketStorage();
     }
 
-    private static void addTicket(DistanceManager distanceManager, long chunkPos) {
-        if (!IPConfig.getConfig().enableImmPtlChunkLoading) {
-            return;
-        }
-
-        getTicketStorage(distanceManager).addTicketWithRadius(
-            TICKET_TYPE,
-            new ChunkPos(chunkPos),
-            getLoadingRadius()
-        );
-
-        if (enableDebugRateStat) {
-            debugRateStat.hit();
-        }
+    private static void addTicket(DistanceManager distanceManager, long packed) {
+        if (!IPConfig.getConfig().enableImmPtlChunkLoading) return;
+        getTicketStorage(distanceManager).addTicketWithRadius(TICKET_TYPE, chunkPos(packed), getLoadingRadius());
+        if (enableDebugRateStat) debugRateStat.hit();
     }
 
-    private static void removeImmPtlTicketsAt(DistanceManager distanceManager, long chunkPos) {
+    private static void removeImmPtlTicketsAt(DistanceManager distanceManager, long packed) {
         TicketStorage ticketStorage = getTicketStorage(distanceManager);
-        List<Ticket> toRemove = ticketStorage.getTickets(chunkPos).stream()
+        List<Ticket> toRemove = ticketStorage.getTickets(packed).stream()
             .filter(ticket -> ticket.getType() == TICKET_TYPE)
             .toList();
+        if (toRemove.isEmpty()) return;
 
-        if (toRemove.isEmpty()) {
-            return;
-        }
-
-        ChunkPos chunkPosObj = new ChunkPos(chunkPos);
+        ChunkPos pos = chunkPos(packed);
         for (Ticket ticket : toRemove) {
-            ticketStorage.removeTicket(ticket, chunkPosObj);
+            ticketStorage.removeTicket(ticket, pos);
         }
     }
 
     public void purge(ServerLevel world, LongPredicate shouldKeepLoadingFunc) {
         DistanceManager distanceManager = getDistanceManager(world);
-
         chunkPosToTicketInfo.long2ObjectEntrySet().removeIf(e -> {
-            long chunkPos = e.getLongKey();
+            long packed = e.getLongKey();
             ChunkTicketInfo ticketInfo = e.getValue();
-            boolean keepLoading = shouldKeepLoadingFunc.test(chunkPos);
-
-            if (keepLoading) {
-                return false;
-            }
-
-            waitingForLoading.remove(chunkPos);
-            boolean pendingTicketAdding = getQueueByDistance(ticketInfo.distanceToSource).remove(chunkPos);
-            if (!pendingTicketAdding) {
-                removeImmPtlTicketsAt(distanceManager, chunkPos);
-            }
+            if (shouldKeepLoadingFunc.test(packed)) return false;
+            waitingForLoading.remove(packed);
+            boolean pendingTicketAdding = getQueueByDistance(ticketInfo.distanceToSource).remove(packed);
+            if (!pendingTicketAdding) removeImmPtlTicketsAt(distanceManager, packed);
             return true;
         });
     }
@@ -248,18 +191,13 @@ public class ImmPtlChunkTickets {
 
     public static void onDimensionRemove(ServerLevel world) {
         ImmPtlChunkTickets dimTicketManager = BY_DIMENSION.remove(world);
-        if (dimTicketManager == null) {
-            return;
-        }
-
+        if (dimTicketManager == null) return;
         removeAllTicketsInWorld(world, dimTicketManager);
     }
 
     private static void removeAllTicketsInWorld(ServerLevel world, ImmPtlChunkTickets dimTicketManager) {
         DistanceManager distanceManager = getDistanceManager(world);
-        dimTicketManager.chunkPosToTicketInfo.keySet().forEach(
-            (long pos) -> removeImmPtlTicketsAt(distanceManager, pos)
-        );
+        dimTicketManager.chunkPosToTicketInfo.keySet().forEach((long pos) -> removeImmPtlTicketsAt(distanceManager, pos));
         dimTicketManager.isValid = false;
     }
 
