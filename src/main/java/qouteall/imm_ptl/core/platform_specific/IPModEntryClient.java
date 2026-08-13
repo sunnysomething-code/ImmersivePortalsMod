@@ -11,7 +11,6 @@ import qouteall.imm_ptl.core.IPGlobal;
 import qouteall.imm_ptl.core.IPMcHelper;
 import qouteall.imm_ptl.core.IPModMainClient;
 import qouteall.imm_ptl.core.compat.IPModInfoChecking;
-import qouteall.imm_ptl.core.compat.iris_compatibility.ExperimentalIrisPortalRenderer;
 import qouteall.imm_ptl.core.compat.iris_compatibility.IrisInterface;
 import qouteall.imm_ptl.core.compat.sodium_compatibility.SodiumInterface;
 import qouteall.imm_ptl.core.portal.BreakableMirror;
@@ -73,7 +72,7 @@ public class IPModEntryClient implements ClientModInitializer {
         if (isSodiumPresent) {
             Helper.log("Sodium is present");
             
-            SodiumInterface.invoker = new SodiumInterface.OnSodiumPresent();
+            Helper.log("Sodium integration is temporarily disabled on the 26.1.2 port");
             
             // Sodium compat is pretty ok now. No warning needed.
 //            IPGlobal.clientTaskList.addTask(MyTaskList.oneShotTask(() -> {
@@ -90,18 +89,7 @@ public class IPModEntryClient implements ClientModInitializer {
         }
         
         if (FabricLoader.getInstance().isModLoaded("iris")) {
-            Helper.log("Iris is present");
-            IrisInterface.invoker = new IrisInterface.OnIrisPresent();
-            ExperimentalIrisPortalRenderer.init();
-            
-            IPGlobal.CLIENT_TASK_LIST.addTask(MyTaskList.oneShotTask(() -> {
-                if (IPConfig.getConfig().shouldDisplayWarning("iris")) {
-                    CHelper.printChat(
-                        Component.translatable("imm_ptl.iris_warning")
-                            .append(IPMcHelper.getDisableWarningText("iris"))
-                    );
-                }
-            }));
+            Helper.log("Iris integration is temporarily disabled on the 26.1.2 port");
         }
         else {
             Helper.log("Iris is not present");
