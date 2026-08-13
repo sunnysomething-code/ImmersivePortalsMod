@@ -43,7 +43,7 @@ jobs:
       - name: Probe Minecraft and Fabric 26.1.2 APIs
         run: |
           ./gradlew printClasspath > /tmp/classpath.txt
-          python3 - <<'PY'
+          python3 - <<'PY' 2>&1 | tee probe.log
           import os, re, subprocess
           text = open('/tmp/classpath.txt', errors='ignore').read()
           jars = [p for p in re.findall(r'\"([^\"\n]+\.jar)\"', text) if os.path.exists(p)]
@@ -115,6 +115,7 @@ jobs:
         with:
           name: build-output
           path: |
+            probe.log
             compile.log
             compile-errors.txt
             build/libs/**
