@@ -55,7 +55,7 @@ public class ShaderCodeTransformation {
         if (IPGlobal.enableClippingMechanism) {
             Yaml yaml = new Yaml();
             
-            String yamlStr = McHelper.readTextResource(McHelper.newResourceLocation(
+            String yamlStr = McHelper.readTextResource(McHelper.newIdentifier(
                 "immersive_portals:shaders/shader_transformation.yaml"
             ));
             ConfigsObj configsObj = yaml.loadAs(yamlStr, ConfigsObj.class);
