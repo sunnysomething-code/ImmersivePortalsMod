@@ -51,13 +51,24 @@ loom {
     accessWidenerPath = file("src/main/resources/imm_ptl.accesswidener")
 }
 
-// Port the portal engine first. The peripheral module contains dimension-stack
-// screens, alternate-dimension helpers and registration code that depend on
-// APIs removed or moved in 26.1.x. Re-enable it after the core compiles.
+// Port the portal engine first. Exclude only the peripheral pieces that are
+// independently blocked on removed 26.1.x GUI/registration/worldgen APIs;
+// retain helpers referenced by core (feature control, wand state and the
+// non-GUI dimension-stack management code).
 sourceSets {
     main {
         java {
-            exclude 'qouteall/imm_ptl/peripheral/**'
+            exclude 'qouteall/imm_ptl/peripheral/PeripheralModMain.java'
+            exclude 'qouteall/imm_ptl/peripheral/platform_specific/PeripheralModEntry.java'
+            exclude 'qouteall/imm_ptl/peripheral/platform_specific/PeripheralModEntryClient.java'
+            exclude 'qouteall/imm_ptl/peripheral/alternate_dimension/**'
+            exclude 'qouteall/imm_ptl/peripheral/mixin/common/dim_stack/MixinMinecraftServer_DimStack_CVB.java'
+            exclude 'qouteall/imm_ptl/peripheral/dim_stack/DimStackScreen.java'
+            exclude 'qouteall/imm_ptl/peripheral/dim_stack/DimListWidget.java'
+            exclude 'qouteall/imm_ptl/peripheral/dim_stack/DimEntryWidget.java'
+            exclude 'qouteall/imm_ptl/peripheral/dim_stack/DimStackEntryEditScreen.java'
+            exclude 'qouteall/imm_ptl/peripheral/dim_stack/SelectDimensionScreen.java'
+            exclude 'qouteall/imm_ptl/core/api/example/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/iris/**'
             exclude 'qouteall/imm_ptl/core/compat/mixin/sodium/**'
             exclude { details ->
