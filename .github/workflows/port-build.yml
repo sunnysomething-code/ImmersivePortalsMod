@@ -9,12 +9,17 @@ on:
       - 1.21
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout port branch
         uses: actions/checkout@v4
+        with:
+          ref: 26.1.2-port
 
       - name: Set up Java 25
         uses: actions/setup-java@v5
@@ -26,27 +31,16 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Resolve and inspect Minecraft 26.1.2 classes
+      - name: Apply verified mechanical 26.1.2 renames
         run: |
-          ./gradlew printClasspath > /tmp/classpath.txt
-          cat /tmp/classpath.txt
-          python3 - <<'PY'
-          import os, re, subprocess
-          text = open('/tmp/classpath.txt', errors='ignore').read()
-          jars = re.findall(r'"([^"\n]+\.jar)"', text)
-          needles = re.compile(r'(ResourceLocation|Identifier|GuiGraphics|GuiGraphicsExtractor|Util\.class|AbstractMinecart|Minecart|FogRenderer|RenderType|LightTexture|InteractionResultHolder|ChunkProgressListener|DimensionDataStorage|RelativeMovement|AbstractArrow|ThrownEnderpearl|EndDragonFight|GlDebug|ProcessorMailbox|ChunkTaskPriorityQueueSorter|WeightedRandomList)')
-          for jar in jars:
-              if not os.path.exists(jar):
-                  continue
-              try:
-                  out = subprocess.check_output(['jar','tf',jar], text=True, stderr=subprocess.DEVNULL)
-              except Exception:
-                  continue
-              matches = [line for line in out.splitlines() if needles.search(line)]
-              if matches:
-                  print('===', jar, '===')
-                  print('\n'.join(matches[:400]))
-          PY
+          python3 scripts/port_26_1_mechanical.py
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/main/java
+            git commit -m "Apply verified Minecraft 26.1.2 class renames"
+            git push origin HEAD:26.1.2-port
+          fi
 
       - name: Build
         run: ./gradlew build --stacktrace
